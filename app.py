@@ -4,11 +4,23 @@ from dotenv import load_dotenv
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+from flask_mail import Mail, Message
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 app = Flask(__name__)
 load_dotenv('.cred')
 app.config["MONGO_URI"] = os.getenv('MONGO_URI', 'localhost')
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = 'aquafinder.insper@gmail.com'
+app.config['MAIL_PASSWORD'] = 'gruporevelacao2024'
+app.config['MAIL_DEFAULT_SENDER'] = 'aquafinder.insper@gmail.com'
+
+mail = Mail(app)
 mongo = PyMongo(app)
+
 
 
 # USUARIOS
@@ -59,6 +71,267 @@ def login():
 
 # AQUARIOS
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def enviar_email():
+    try:
+        # user = mongo.db.usuarios.find_all({},{'email': 1})
+        # aquarios = mongo.db.aquarios.find_all({})
+        msg = Message(
+            "Disponibilidade de aquário",
+            recipients= ['carolina.eske@gmail.com'],
+            body= f"Os aquarios abc estão disponíveis!"
+        )
+        mail.send(msg)
+        return "E-mail enviado com sucesso!"
+    except Exception as e:
+        return f"Erro ao enviar e-mail: {str(e)}"
+
+
+scheduler = BlockingScheduler()
+scheduler.add_job(enviar_email, 'interval', minutes=1)  
+
+
+try:
+    scheduler.start()
+
+except (KeyboardInterrupt, SystemExit):
+    
+    print("Não foi possivel verificar o site")
 
 if __name__ == '__main__':
     app.run(debug=True)
