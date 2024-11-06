@@ -7,6 +7,8 @@ import re
 from flask_mail import Mail, Message
 from apscheduler.schedulers.blocking import BlockingScheduler
 import threading
+from auth import requires_auth
+
 
 
 app = Flask(__name__)
@@ -97,6 +99,7 @@ def listar_aquarios_por_predio(predio):
 
 # AQUARIO OCUPAR/DESOCUPAR
 @app.route('/aquarios/ocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
+@requires_auth(mongo)
 def ocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
@@ -117,6 +120,7 @@ def ocupar_aquario(predio, andar, numero):
 
 
 @app.route('/aquarios/desocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
+@requires_auth(mongo)
 def desocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
@@ -134,7 +138,6 @@ def desocupar_aquario(predio, andar, numero):
         return jsonify({'msg': 'Aquário não encontrado ou já está desocupado'}), 400
     
     return jsonify({'msg': 'Aquário desocupado com sucesso'}), 200
-
 
 
 
