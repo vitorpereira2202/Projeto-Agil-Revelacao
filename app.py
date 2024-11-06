@@ -7,9 +7,11 @@ import re
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 import threading
+from auth import requires_auth
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
 
 
 app = Flask(__name__)
@@ -96,6 +98,7 @@ def listar_aquarios_por_predio(predio):
 
 # AQUARIO OCUPAR/DESOCUPAR
 @app.route('/aquarios/ocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
+@requires_auth(mongo)
 def ocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
@@ -115,6 +118,7 @@ def ocupar_aquario(predio, andar, numero):
 
 
 @app.route('/aquarios/desocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
+@requires_auth(mongo)
 def desocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
@@ -156,7 +160,6 @@ def formatar_aquarios_disponiveis(aquariosp1, aquariosp2, aquariosp4):
     p2_disponiveis = listar_aquarios_disponiveis(aquariosp2, "P2")
     p4_disponiveis = listar_aquarios_disponiveis(aquariosp4, "P4")
     return f"Aquários disponíveis:\n{p1_disponiveis}\n{p2_disponiveis}\n{p4_disponiveis}"
-
 
 
 def enviar_email():
