@@ -4,23 +4,22 @@ from dotenv import load_dotenv
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
-from flask_mail import Mail, Message
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 import threading
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 app = Flask(__name__)
 load_dotenv('.cred')
 app.config["MONGO_URI"] = os.getenv('MONGO_URI', 'localhost')
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = 'aquafinder.insper@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xipx disj wkeg gwyt'
-app.config['MAIL_DEFAULT_SENDER'] = 'aquafinder.insper@gmail.com'
+smtp_server = 'smtp.gmail.com'
+smtp_port = 587
+email_remetente = "aquafinder.insper@gmail.com"
+senha = "uzvx phud uqzl jkay"
 
-mail = Mail(app)
 mongo = PyMongo(app)
 
 
@@ -100,7 +99,6 @@ def listar_aquarios_por_predio(predio):
 def ocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
-    # Atualiza o campo 'ocupado' do aquário especificado para True
     result = mongo.db.aquarios.update_one(
         {'predio': predio},
         {'$set': {'andares.$[andarElem].aquarios.$[aquarioElem].ocupado': True}},
@@ -120,7 +118,7 @@ def ocupar_aquario(predio, andar, numero):
 def desocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
-    # Atualiza o campo 'ocupado' do aquário especificado para False
+    
     result = mongo.db.aquarios.update_one(
         {'predio': predio},
         {'$set': {'andares.$[andarElem].aquarios.$[aquarioElem].ocupado': False}},
@@ -142,35 +140,68 @@ def desocupar_aquario(predio, andar, numero):
 
 
 
+def formatar_aquarios_disponiveis(aquariosp1, aquariosp2, aquariosp4):
+    def listar_aquarios_disponiveis(predios, predio_nome):
+        aquarios_disponiveis = []
+        for predio in predios:
+            for andar in predio.get("andares", []):
+                andar_numero = andar['andar']
+                for aquario in andar.get("aquarios", []):
+                    if not aquario["ocupado"]:  
+                        aquarios_disponiveis.append(f"Andar {andar_numero} - Aquário {aquario['numero']}")
+        return f"{predio_nome}: " + ", ".join(aquarios_disponiveis) if aquarios_disponiveis else f"{predio_nome}: Nenhum disponível"
 
-
+   
+    p1_disponiveis = listar_aquarios_disponiveis(aquariosp1, "P1")
+    p2_disponiveis = listar_aquarios_disponiveis(aquariosp2, "P2")
+    p4_disponiveis = listar_aquarios_disponiveis(aquariosp4, "P4")
+    return f"Aquários disponíveis:\n{p1_disponiveis}\n{p2_disponiveis}\n{p4_disponiveis}"
 
 
 
 def enviar_email():
-    try:
-        user = mongo.db.usuarios.find_all({},{'email': 1})
-        aquarios = mongo.db.aquarios.find_all({})
-        msg = Message(
-            "Disponibilidade de aquário",
-            recipients= [user],
-            body= f"Os aquarios {aquarios} estão disponíveis!"
-        )
-        mail.send(msg)
-        return "E-mail enviado com sucesso!"
-    except Exception as e:
-        return f"Erro ao enviar e-mail: {str(e)}"
+        
+    usuarios = list(mongo.db.usuarios.find({}, {'email': 1}))
+    aquariosp1 = list(mongo.db.aquarios.find({'predio': 'P1'}, {'andares':1}))
+    aquariosp2 = list(mongo.db.aquarios.find({'predio': 'P2'}, {'andares':1}))
+    aquariosp4 = list(mongo.db.aquarios.find({'predio': 'P4'}, {'andares':1}))
 
+    users = [usuario['email'] for usuario in usuarios]
+    corpo_mensagem = formatar_aquarios_disponiveis(aquariosp1, aquariosp2, aquariosp4)
+
+
+    for usuario in usuarios:
+        users.append(usuario['email'])
+
+
+   
+    mensagem = MIMEMultipart()
+    mensagem["From"] = email_remetente
+    mensagem["To"] = ", ".join(users)
+    mensagem["Subject"] = "Disponibilidade dos aquários"
+    mensagem.attach(MIMEText(corpo_mensagem, "plain"))
+
+    try:
+      
+        servidor = smtplib.SMTP(smtp_server, smtp_port)
+        servidor.starttls()  
+        servidor.login(email_remetente, senha)
+        servidor.sendmail(email_remetente, users, mensagem.as_string())
+        print("E-mail enviado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao enviar e-mail: {e}")
+    finally:
+        servidor.quit()
+    
 
 def enviar_email_automatico():
     with app.app_context():
         enviar_email()
 
 
-
 def iniciar_scheduler():
     scheduler = BlockingScheduler()
-    scheduler.add_job(enviar_email_automatico, 'interval', minutes = 1)  
+    scheduler.add_job(enviar_email_automatico, 'interval', minutes = 30)  
 
 
     try:
@@ -181,7 +212,9 @@ def iniciar_scheduler():
         print("Não foi possivel verificar o site")
 
 
+
 if __name__ == '__main__':
 
     threading.Thread(target=iniciar_scheduler).start()
     app.run(debug=True)
+
