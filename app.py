@@ -98,7 +98,7 @@ def listar_aquarios_por_predio(predio):
 
 # AQUARIO OCUPAR/DESOCUPAR
 @app.route('/aquarios/ocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
-@requires_auth(mongo)
+# @requires_auth(mongo)
 def ocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
@@ -118,7 +118,7 @@ def ocupar_aquario(predio, andar, numero):
 
 
 @app.route('/aquarios/desocupar/<predio>/<int:andar>/<int:numero>', methods=['PUT'])
-@requires_auth(mongo)
+# @requires_auth(mongo)
 def desocupar_aquario(predio, andar, numero):
     predio = predio.upper()
     
